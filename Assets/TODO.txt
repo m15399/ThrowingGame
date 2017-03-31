@@ -1,4 +1,2 @@
 
-better platforming controls
-
-enemies
+projectiles break after a while

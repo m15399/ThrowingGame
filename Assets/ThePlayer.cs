@@ -34,7 +34,6 @@ public class ThePlayer : MonoBehaviour {
 	}
 	
 	void Update () {
-
 		// Input
 		//
 		inputDir = 0;
@@ -45,19 +44,34 @@ public class ThePlayer : MonoBehaviour {
 		if(canJump && Input.GetKeyDown("up"))
 			yv = 8;
 
-		// Move player by xv, yv
+		// Position
 		//
-		transform.position += new Vector3(xv, yv, 0) * Time.deltaTime;
+		Vector3 position = transform.position;
+
+		// Move player by xv, yv
+		position += new Vector3(xv, yv, 0) * Time.deltaTime;
 
 		// Ground collision
-		//
-		if(transform.position.y <= 0){
+		if(position.y <= 0){
 			yv = 0;
-			transform.position -= new Vector3(0, transform.position.y, 0);
+			position.y = 0;
 			canJump = true;
 		} else {
 			canJump = false;
 		}
+
+		// Clamp to screen
+		float screenSize = 16;
+		if(position.x < -screenSize){
+			position.x = -screenSize;
+			xv = 0;
+		} else if(position.x > screenSize){
+			position.x = screenSize;
+			xv = 0;
+		}
+
+		transform.position = position;
+
 
 		// Update sprite lean
 		//
@@ -66,25 +80,39 @@ public class ThePlayer : MonoBehaviour {
 		// Charge/Fire
 		//
 		float minCharge = .1f;
-		if(Input.GetKey("space")){
-			charge = Mathf.Clamp(charge, minCharge, 1);
-			charge += 1.6f * Time.deltaTime;
-			charge = Mathf.Clamp(charge, minCharge, 1);
+		float baseChargeRate = minCharge / .4f;
 
+		if(Input.GetKey("space")){
+			if(charge > minCharge - .01f){
+				charge += 1.6f * Time.deltaTime;
+				charge = Mathf.Clamp(charge, 0, 1);
+			} else {
+				// "Reloading" - can't speed this part up
+				charge += baseChargeRate * Time.deltaTime;
+			}
+		
 		} else {
-			if(charge > .1f){
+			if(charge > minCharge){
 				
 				// Fire
 				//
-				Rigidbody2D o = GameObject.Instantiate(projectilePrefab, transform.position, Quaternion.identity).
+				Rigidbody2D projectile = GameObject.Instantiate(projectilePrefab, transform.position, Quaternion.identity).
 					GetComponent<Rigidbody2D>();
-
+				
+				// Bonus at lower charges for better feel
 				float realCharge = 1 - Mathf.Pow(1 - charge, 1.5f);
-				float v = 13 * realCharge;
 
-				o.velocity = new Vector2(xv * .2f + Mathf.Sin(Mathf.Deg2Rad * lean) * v * 2f, v);
+				float maxPower = 12.5f;
+				float yPower = maxPower * realCharge;
+				float xPower = xv * .2f + Mathf.Sin(Mathf.Deg2Rad * lean) * yPower * 1.9f;
+
+				projectile.velocity = new Vector2(xPower, yPower);
+				charge = 0;
 			}
-			charge = 0;
+
+			// Charge up to minCharge slowly
+			charge += baseChargeRate * Time.deltaTime;
+			charge = Mathf.Clamp(charge, 0, minCharge);
 		}
 
 		// Update charge meter size
@@ -98,11 +126,12 @@ public class ThePlayer : MonoBehaviour {
 		//
 		float acc = .35f;
 		float fric = .95f;
-		float maxSpeed = 5.5f;
+		float maxSpeed = 6.0f;
 
 		xv *= fric;
 		xv += inputDir * acc;
 		xv = Mathf.Clamp(xv, -maxSpeed, maxSpeed);
+//		Debug.Log(xv);
 
 		yv += Time.fixedDeltaTime * Physics2D.gravity.y;
 
@@ -111,6 +140,7 @@ public class ThePlayer : MonoBehaviour {
 		if(inputDir != 0){
 			lean *= .95f;
 			lean += inputDir * 2.0f;
+
 			float maxLean = 15;
 			lean = Mathf.Clamp(lean, -maxLean, maxLean);
 		} else {

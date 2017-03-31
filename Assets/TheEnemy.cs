@@ -16,7 +16,9 @@ public class TheEnemy : MonoBehaviour {
 	}
 	
 	void Update () {
-		
+
+		// Blink
+		//
 		float alpha = 1;
 		if(invulnerable){
 			if((int)(Time.time * 20) % 2 == 0){
@@ -50,6 +52,9 @@ public class TheEnemy : MonoBehaviour {
 	void OnTriggerEnter2D(Collider2D other){
 		if(!invulnerable){
 			TakeHit();
+
+			// Destroy the projectile when it hits us?
+//			GameObject.Destroy(other.gameObject);
 		}
 	}
 }
